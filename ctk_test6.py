@@ -158,7 +158,7 @@ class App(customtkinter.CTk):
         super().__init__()
 
         self.title("watchman_pairing_assistant")
-        self.after(201, lambda :self.iconbitmap(r'C:\Users\marim\Desktop\pairing_assistant\UI_test\icon.ico')) #set icon dir
+        self.after(201, lambda :self.iconbitmap(r'icon.ico')) #set icon dir
         self.geometry(f"{940}x{590}")
         self.grid_rowconfigure(1, weight=1)
         self.grid_columnconfigure(1, weight=1)
