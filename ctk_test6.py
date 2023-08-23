@@ -1,6 +1,7 @@
 import tkinter as tk
 import customtkinter
 import os
+import re
 import subprocess
 import time
 import threading
@@ -15,7 +16,7 @@ class SidebarFrame(customtkinter.CTkFrame):
 
         self.logo_label = customtkinter.CTkLabel(self, text="Pairing Assistant", font=customtkinter.CTkFont(size=20, weight="bold"))
         self.logo_label.grid(row=0, column=0, padx=13, pady=(30, 20))
-        self.sidebar_button_reload = customtkinter.CTkButton(self,text="Reload",command=self.reload_devices, text_color=("gray10", "#DCE4EE"), fg_color="transparent", border_width=2,)
+        self.sidebar_button_reload = customtkinter.CTkButton(self,text="Reload",command=self.reload_devices, text_color=("gray10", "#DCE4EE"), fg_color="transparent", border_width=2)
         self.sidebar_button_reload.grid(row=1, column=0, padx=20, pady=10)
         self.sidebar_button_pairall = customtkinter.CTkButton(self,text="PairAll",command=lambda:self.sidebar_botton_select_callback("pairall"))
         self.sidebar_button_pairall.grid(row=2, column=0, padx=20, pady=10)
@@ -23,11 +24,14 @@ class SidebarFrame(customtkinter.CTkFrame):
         self.sidebar_button_force_pairall.grid(row=3, column=0, padx=20, pady=10)
         self.sidebar_button_unpairall = customtkinter.CTkButton(self,text="UnpairAll",command=lambda:self.sidebar_botton_select_callback("unpairall"))
         self.sidebar_button_unpairall.grid(row=4, column=0, padx=20, pady=10)
+        self.sidebar_button_unpairall = customtkinter.CTkButton(self,text="DongleResetAll",command=lambda:self.sidebar_botton_select_callback("dongleresetall"))
+        self.sidebar_button_unpairall.grid(row=5, column=0, padx=20, pady=10)
+
 
         self.appearance_mode_label = customtkinter.CTkLabel(self, text="Theme:")
-        self.appearance_mode_label.grid(row=6, column=0, padx=20, pady=(10, 0))
+        self.appearance_mode_label.grid(row=7, column=0, padx=20, pady=(10, 0))
         self.appearance_mode_optionemenu = customtkinter.CTkOptionMenu(self, values=["Light", "Dark", "System"],command=self.change_appearance_mode_event)
-        self.appearance_mode_optionemenu.grid(row=7, column=0, padx=20, pady=(10, 20))
+        self.appearance_mode_optionemenu.grid(row=8, column=0, padx=20, pady=(10, 20))
 
         #reset
         self.appearance_mode_optionemenu.set("System")
@@ -92,18 +96,24 @@ class DeviceFrame(customtkinter.CTkFrame):
         #self.Device_name_label.grid(row=0, column=2, padx=20, pady=20)
         self.Device_name_label.place(x=210,y=20)
 
-        self.button_select = customtkinter.CTkButton(self,command=lambda: self.device_button_callback("pair",serial), text="Pair")
-        self.button_select.grid(row=0, column=4, padx=(20, 10), pady=20)
-        self.button_select = customtkinter.CTkButton(self,command=lambda: self.device_button_callback("unpair",serial), text="Unpair")
-        self.button_select.grid(row=0, column=5, padx=(10, 20), pady=20)
+        self.button_select = customtkinter.CTkButton(self,width=100,command=lambda: self.device_button_callback("pair",serial), text="Pair")
+        self.button_select.grid(row=0, column=4, padx=(70, 10), pady=20)
+        self.button_select = customtkinter.CTkButton(self,width=100,command=lambda: self.device_button_callback("unpair",serial), text="Unpair")
+        self.button_select.grid(row=0, column=5, padx=(10, 10), pady=20)
+        self.button_select = customtkinter.CTkButton(self,width=100, text_color=("gray10", "#DCE4EE"), fg_color="transparent", border_width=2, command=lambda: self.device_button_callback("donglereset",serial), text="DongleReset")
+        self.button_select.grid(row=0, column=6, padx=(10, 20), pady=20)
 
 
     def get_device_name(self, serial_number):
         if serial_number.endswith(("LYM", "RYB")):
-            return "Headset"
+            return "IndexHMD"
+        elif serial_number.endswith(("LYX")):
+            return "IndexFW"
+        elif re.match(r".*(-[0-9]YX)$", serial_number):
+            return "Tundra"
         else:
             return "Dongle"
-        
+
     def device_button_callback(self,command,serial):
         exe_path = self.app_instance.exe_path_frame.textbox.get()
         self.app_instance.execute_subprocess_serial(serial, command, exe_path)
@@ -134,8 +144,8 @@ class ExePathFrame(customtkinter.CTkFrame):
 
     @staticmethod
     def file_read():
-        current_dir = os.path.abspath(os.path.dirname(__file__))
-        file_path = tk.filedialog.askopenfilename(filetypes=[("Executable Files", "*.exe")], initialdir=current_dir)
+        
+        file_path = tk.filedialog.askopenfilename(filetypes=[("Executable Files", "*.exe")])
 
         if len(file_path) != 0:
             return file_path
@@ -169,8 +179,8 @@ class App(customtkinter.CTk):
         self.exe_path_frame.grid_columnconfigure(0, weight=1)
 
         self.sidebar_frame = SidebarFrame(self)
-        self.sidebar_frame.grid(row=0, column=0, rowspan=4, sticky="nsew")
-        self.sidebar_frame.grid_rowconfigure(5, weight=1)
+        self.sidebar_frame.grid(row=0, column=0, rowspan=5, sticky="nsew")
+        self.sidebar_frame.grid_rowconfigure(6, weight=1)
 
         self.scrollable_frame = ScrollableFrame(self)
         self.scrollable_frame.grid(row=1, column=1, padx=(20, 20), pady=(10, 0), sticky="nsew")
