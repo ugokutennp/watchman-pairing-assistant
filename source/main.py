@@ -5,7 +5,6 @@ import subprocess
 import time
 import threading
 
-
 ctk.set_appearance_mode("System")
 ctk.set_default_color_theme("blue")
 
@@ -37,13 +36,17 @@ class SidebarFrame(ctk.CTkFrame):
 
     def reload_devices(self):
         app_instance = self.master
+
         exe_path = app_instance.exe_path_frame.textbox.get()
         output = app_instance.execute_subprocess("serial", exe_path)
         device_serials = self.extract_device_serials(output)
-        
+        #print("Recognized devices: " + ", ".join(device_serials))
+        app_instance.insert_log("Recognized devices: " + ", ".join(device_serials))
+
         app_instance.scrollable_frame.update_device_frames(device_serials,app_instance)
         app_instance.status_check()
         app_instance.insert_log("Reloaded devices")
+        
 
     @staticmethod
     def extract_device_serials(output):
@@ -59,8 +62,9 @@ class SidebarFrame(ctk.CTkFrame):
             self.sidebar_button_pairall.configure(text="Pairing...",state="disabled")
         elif command == "forcepairall":
             self.sidebar_button_force_pairall.configure(text="Pairing...",state="disabled")
-            
-        app_instance.execute_subprocess(command, exe_path)
+        
+        threading.Thread(target=lambda: app_instance.execute_subprocess(command, exe_path)).start()
+        #app_instance.execute_subprocess(command, exe_path)
     
     # After 5 seconds, reset the corresponding button text
         if command == "pairall":
@@ -144,7 +148,7 @@ class DeviceFrame(ctk.CTkFrame):
 
         self.app_instance.execute_subprocess_serial(serial, command, exe_path)
         self.app_instance.insert_log("Executed command : serial " + serial +" "+ command)
-        time.sleep(1)
+        #time.sleep(1)
         if command == "pair":
             self.after(5000, lambda: self.pair_button_select.configure(text="Pair",state="normal"))
             
@@ -221,7 +225,7 @@ class App(ctk.CTk):
         self.log_textbox.grid(row=2, column=1, padx=(20, 20), pady=(20, 20), sticky="nsew")
 
         #reset
-        self.insert_log("Welcome to watchman_pairing_assistant ! (v1.2)")
+        self.insert_log("Welcome to watchman_pairing_assistant ! (v1.3)")
         self.exe_path_frame.exe_check()
         self.sidebar_frame.reload_devices()
         
@@ -233,12 +237,14 @@ class App(ctk.CTk):
         print(current_time + log)
 
     def execute_subprocess(self, command, exe_path):
+        
         completed_process = subprocess.run([exe_path, command], capture_output=True, text=True)
         ##print("Completed Process:", completed_process)
         return completed_process.stdout
+
     
-    def execute_subprocess_serial(self, serial, command, exe_path, timeout=10):
-        def run_subprocess():
+    def execute_subprocess_serial(self, serial, command, exe_path, timeout=5):
+        def execute_subprocess_serial_thread():
             process = subprocess.Popen([exe_path], stdout=subprocess.PIPE, stdin=subprocess.PIPE, stderr=subprocess.PIPE, universal_newlines=True)
 
             try:
@@ -256,8 +262,7 @@ class App(ctk.CTk):
                 if process.poll() is None:
                     process.wait()
 
-        thread = threading.Thread(target=run_subprocess)
-        thread.start()
+        threading.Thread(target=execute_subprocess_serial_thread).start()
 
     def status_check(self):
         exe_path = self.exe_path_frame.textbox.get()
@@ -270,6 +275,7 @@ class App(ctk.CTk):
 
             if serial_appears_disabled:
                 self.device_status_change(serial,"disabled")
+                self.insert_log("Device connected with "+serial)
             else:
                 self.device_status_change(serial,"normal")
 
