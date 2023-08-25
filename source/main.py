@@ -146,9 +146,11 @@ class DeviceFrame(ctk.CTkFrame):
         if command == "pair":
             self.pair_button_select.configure(text="Pairing...",state="disabled")
 
-        self.app_instance.execute_subprocess_serial(serial, command, exe_path)
+        
+        
+        threading.Thread(target=lambda: self.app_instance.execute_subprocess_serial(serial, command, exe_path)).start()
         self.app_instance.insert_log("Executed command : serial " + serial +" "+ command)
-        #time.sleep(1)
+        
         if command == "pair":
             self.after(5000, lambda: self.pair_button_select.configure(text="Pair",state="normal"))
             
@@ -244,25 +246,23 @@ class App(ctk.CTk):
 
     
     def execute_subprocess_serial(self, serial, command, exe_path, timeout=5):
-        def execute_subprocess_serial_thread():
-            process = subprocess.Popen([exe_path], stdout=subprocess.PIPE, stdin=subprocess.PIPE, stderr=subprocess.PIPE, universal_newlines=True)
+        
+        process = subprocess.Popen([exe_path], stdout=subprocess.PIPE, stdin=subprocess.PIPE, stderr=subprocess.PIPE, universal_newlines=True)
+        try:
+            process.stdin.write(f"serial {serial}\n")
+            process.stdin.flush()
+            process.stdin.write(f"{command}\n")
+            process.stdin.flush()
+            process.communicate(timeout=timeout)
 
-            try:
-                process.stdin.write(f"serial {serial}\n")
-                process.stdin.flush()
-                process.stdin.write(f"{command}\n")
-                process.stdin.flush()
-                process.communicate(timeout=timeout)
+        except subprocess.TimeoutExpired:
+            process.kill()
+            #self.insert_log(f"Process timed out after {timeout} seconds and was forcibly terminated.")
 
-            except subprocess.TimeoutExpired:
-                process.kill()
-                #self.insert_log(f"Process timed out after {timeout} seconds and was forcibly terminated.")
+        finally:
+            if process.poll() is None:
+                process.wait()
 
-            finally:
-                if process.poll() is None:
-                    process.wait()
-
-        threading.Thread(target=execute_subprocess_serial_thread).start()
 
     def status_check(self):
         exe_path = self.exe_path_frame.textbox.get()
