@@ -246,17 +246,18 @@ class App(ctk.CTk):
             return "IndexHMD"
         elif serial_number.endswith(("LYX")):   #Dongles made with Index firmware when the serial number ends with "LYX"
             return "IndexFW"
-        elif re.match(r".*(-[0-9]YX)$", serial_number):
+        elif re.match(r".*(-[0-9]YX)$", serial_number): 
+            #If the last part of the serial number begins with a "-" followed by a single digit and ends with "YX", it is a Tundra labs Super Wireless Dongle
             return "Tundra"
-        else:
-            return "Dongle"
+        else:   #Other dongles that are not identifiable (vive HMD or general nrf24 dongles)
+            return "Dongle" 
         
     def check_exe(self):#Function to determine if the selected exe is a lighthouse_console.exe
         exe_path = self.exe_path_frame.exepath_entry_serial.get()
         output = self.execute_subprocess("serial", exe_path)
         #print(output)
 
-        if "lighthouse_console.exe" in output:
+        if "lighthouse_console.exe" in output:  #Judging by the presence of "lighthouse_console.exe" in the output results
             self.insert_log("Successfully recognized lighthouse_console.exe")
         else:
             self.insert_log("Failed to recognize lighthouse_console.exe")
