@@ -5,7 +5,7 @@ import time
 import re
 
 class SidebarFrame(ctk.CTkFrame):
-    def __init__(self, master, **kwargs):
+    def __init__(self, master, **kwargs):#Widget Placement
         super().__init__(master, width=140, corner_radius=0, **kwargs)
 
         self.sidebar_label_logo = ctk.CTkLabel(self, text="Pairing Assistant", font=ctk.CTkFont(size=20, weight="bold"))
@@ -30,7 +30,7 @@ class SidebarFrame(ctk.CTkFrame):
         #reset
         self.sidebar_optionemenu_mode.set("System")
 
-    def sidebar_button_reload_callback(self):
+    def sidebar_button_reload_callback(self):#Function to reload device
         app_instance = self.master
         exe_path = app_instance.exe_path_frame.exepath_entry_serial.get()
         output = app_instance.execute_subprocess("serial", exe_path)
@@ -41,7 +41,7 @@ class SidebarFrame(ctk.CTkFrame):
         app_instance.check_status()
         app_instance.insert_log("Reloaded devices")
         
-    def sidebar_button_callback(self, command):
+    def sidebar_button_callback(self, command):#Processing when a button on the sidebar is pressed
         app_instance = self.master
         exe_path = app_instance.exe_path_frame.exepath_entry_serial.get() 
     
@@ -60,7 +60,7 @@ class SidebarFrame(ctk.CTkFrame):
         self.after(5000, app_instance.check_status)
         app_instance.insert_log("Executed command: " + command)
 
-    def sidebar_optionemenu_callback(self, new_appearance_mode: str):
+    def sidebar_optionemenu_callback(self, new_appearance_mode: str):#Functions to change the theme
         ctk.set_appearance_mode(new_appearance_mode)
 
 class ScrollableFrame(ctk.CTkScrollableFrame):
@@ -68,7 +68,7 @@ class ScrollableFrame(ctk.CTkScrollableFrame):
         super().__init__(master, **kwargs)
         self.device_frames = []
 
-    def update_device_frames(self, device_serials,app_instance):
+    def update_device_frames(self, device_serials,app_instance):#Device frames placement
         self.clear_device_frames()
         
         for i, serial in enumerate(device_serials):
@@ -77,7 +77,7 @@ class ScrollableFrame(ctk.CTkScrollableFrame):
             self.device_frame.grid_columnconfigure(3, weight=1)
             self.device_frames.append(self.device_frame)
 
-    def clear_device_frames(self):
+    def clear_device_frames(self):#Clear device frames
         for frame in self.device_frames:
             frame.grid_forget()
             frame.destroy()
@@ -85,7 +85,7 @@ class ScrollableFrame(ctk.CTkScrollableFrame):
         self.device_frames = []
 
 class DeviceFrame(ctk.CTkFrame):
-    def __init__(self, master, serial, app_instance, **kwargs):
+    def __init__(self, master, serial, app_instance, **kwargs):#Widget Placement
         super().__init__(master, **kwargs)
         self.app_instance = app_instance
 
@@ -94,7 +94,7 @@ class DeviceFrame(ctk.CTkFrame):
         self.device_label_serial = ctk.CTkLabel(self, text=serial)  # Display serial here
         self.device_label_serial.grid(row=0, column=1, padx=(5, 20), pady=20)
 
-        self.device_label_name = ctk.CTkLabel(self, text=self.app_instance.get_device_name(serial))
+        self.device_label_name = ctk.CTkLabel(self, text=self.app_instance.get_device_name(serial)) # Display device name here
         #self.device_label_name.grid(row=0, column=2, padx=20, pady=20)
         self.device_label_name.place(x=210,y=20)
 
@@ -106,7 +106,7 @@ class DeviceFrame(ctk.CTkFrame):
                                                  command=lambda: self.device_button_callback("donglereset",serial))
         self.device_button_reset.grid(row=0, column=6, padx=(10, 20), pady=20)
 
-    def device_button_callback(self,command,serial):
+    def device_button_callback(self,command,serial):#Processing when a button on the device frame is pressed
         exe_path = self.app_instance.exe_path_frame.exepath_entry_serial.get()
 
         if command == "pair":
@@ -120,14 +120,14 @@ class DeviceFrame(ctk.CTkFrame):
         
         self.after(5000, self.app_instance.check_status)
 
-    def change_button_status(self, status):
+    def change_button_status(self, status):#Change the status of a button on the device frame
         if status == "normal":
             self.device_button_pair.configure(state=status, text="Pair")
         elif status == "disabled":
             self.device_button_pair.configure(state=status, text="Paired")
 
 class ExePathFrame(ctk.CTkFrame):
-    def __init__(self, master, **kwargs):
+    def __init__(self, master, **kwargs):#Widget Placement
         super().__init__(master, **kwargs)
 
         self.exepath_entry_serial = ctk.CTkEntry(self, width=120)
@@ -140,7 +140,7 @@ class ExePathFrame(ctk.CTkFrame):
         self.exepath_entry_serial.delete(0, ctk.END)
         self.exepath_entry_serial.insert(0, r"C:\Program Files (x86)\Steam\steamapps\common\SteamVR\tools\lighthouse\bin\win64\lighthouse_console.exe")
 
-    def exepath_button_callback(self):
+    def exepath_button_callback(self):#Processing when the browse button is pressed
         app_instance = self.master
         file_name = app_instance.read_file()
 
@@ -150,9 +150,10 @@ class ExePathFrame(ctk.CTkFrame):
             threading.Thread(target=app_instance.check_exe).start()
                   
 class App(ctk.CTk):
-    def __init__(self):
+    def __init__(self):#Frame and widget placement
         super().__init__()
 
+        #Window settings
         ctk.set_appearance_mode("System")
         ctk.set_default_color_theme("blue")
         self.title("watchman_pairing_assistant")
@@ -183,18 +184,18 @@ class App(ctk.CTk):
         self.check_exe()
         self.sidebar_frame.sidebar_button_reload_callback()
         
-    def insert_log(self,log):
+    def insert_log(self,log):#Functio to display logs in console and text box
         current_time = time.strftime("[%Y-%m-%d %H:%M:%S] ")
         self.textbox_log.insert(ctk.END, current_time + log + "\n")
         self.textbox_log.see(ctk.END)
         print(current_time + log)
 
-    def execute_subprocess(self, command, exe_path):
+    def execute_subprocess(self, command, exe_path):#Function to execute an external exe file and get output
         completed_process = subprocess.run([exe_path, command], capture_output=True, text=True)
         return completed_process.stdout
         ##print("Completed Process:", completed_process)
 
-    def execute_subprocess_serial(self, serial, command, exe_path, timeout=5):
+    def execute_subprocess_serial(self, serial, command, exe_path, timeout=5):#Function to execute multiple commands in an external exe file
         process = subprocess.Popen([exe_path], stdout=subprocess.PIPE, stdin=subprocess.PIPE, stderr=subprocess.PIPE, universal_newlines=True)
         try:
             process.stdin.write(f"serial {serial}\n")
@@ -205,12 +206,11 @@ class App(ctk.CTk):
 
         except subprocess.TimeoutExpired:
             process.kill()
-            #self.insert_log(f"Process timed out after {timeout} seconds and was forcibly terminated.")
         finally:
             if process.poll() is None:
                 process.wait()
 
-    def check_status(self):
+    def check_status(self):#Function to determine dongle connection status
         exe_path = self.exe_path_frame.exepath_entry_serial.get()
 
         def check_status_thread():
@@ -219,7 +219,7 @@ class App(ctk.CTk):
 
             for device_frame in self.scrollable_frame.device_frames:
                 serial = device_frame.device_label_serial.cget("text")
-                serial_appears_disabled = f"VRC-{serial}" in output
+                serial_appears_disabled = f"VRC-{serial}" in output #Determine if there is a string "VRC-<serial>" in the output result
 
                 if serial_appears_disabled:
                     self.change_device_status(serial,"disabled")
@@ -229,28 +229,29 @@ class App(ctk.CTk):
 
         threading.Thread(target=check_status_thread).start()
 
-    def change_device_status(self, serial, status):
+    def change_device_status(self, serial, status):#Function to call button status update for device frame
         for device_frame in self.scrollable_frame.device_frames:
             check_serial = device_frame.device_label_serial.cget("text")
             if check_serial == serial:
                 device_frame.change_button_status(status)
                 break
 
-    def extract_device_serials(self, output):
-        lines = [line.strip() for line in output.split('\n') if line.startswith('\t') and not line.lstrip().startswith('LHR-')]
+    def extract_device_serials(self, output):#Function to extract serial from exe output
+        lines = [line.strip() for line in output.split('\n') if line.startswith('\t') and not line.lstrip().startswith('LHR-')] 
+        #Extract columns prefixed with a tab, excluding rows prefixed with "LHR-"
         return lines
     
-    def get_device_name(self, serial_number):
-        if serial_number.endswith(("LYM", "RYB")):
+    def get_device_name(self, serial_number):#Function to determine device name from serial
+        if serial_number.endswith(("LYM", "RYB")):  #Dongle with built-in IndexHMD, which may have "LYM" or "RYB" at the end of the serial number
             return "IndexHMD"
-        elif serial_number.endswith(("LYX")):
+        elif serial_number.endswith(("LYX")):   #Dongles made with Index firmware when the serial number ends with "LYX"
             return "IndexFW"
         elif re.match(r".*(-[0-9]YX)$", serial_number):
             return "Tundra"
         else:
             return "Dongle"
         
-    def check_exe(self):
+    def check_exe(self):#Function to determine if the selected exe is a lighthouse_console.exe
         exe_path = self.exe_path_frame.exepath_entry_serial.get()
         output = self.execute_subprocess("serial", exe_path)
         #print(output)
@@ -260,7 +261,7 @@ class App(ctk.CTk):
         else:
             self.insert_log("Failed to recognize lighthouse_console.exe")
 
-    def read_file(self):
+    def read_file(self):#Function to display a file dialog
         file_path = ctk.filedialog.askopenfilename(filetypes=[("Executable Files", "*.exe")])
 
         if len(file_path) != 0:
