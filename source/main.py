@@ -12,32 +12,32 @@ class SidebarFrame(ctk.CTkFrame):
     def __init__(self, master, **kwargs):
         super().__init__(master, width=140, corner_radius=0, **kwargs)
 
-        self.logo_label = ctk.CTkLabel(self, text="Pairing Assistant", font=ctk.CTkFont(size=20, weight="bold"))
-        self.logo_label.grid(row=0, column=0, padx=13, pady=(30, 20))
-        self.sidebar_button_reload = ctk.CTkButton(self,text="Reload",command=self.reload_devices, border_width=2)
+        self.sidebar_label_logo = ctk.CTkLabel(self, text="Pairing Assistant", font=ctk.CTkFont(size=20, weight="bold"))
+        self.sidebar_label_logo.grid(row=0, column=0, padx=13, pady=(30, 20))
+        self.sidebar_button_reload = ctk.CTkButton(self,text="Reload",command=self.sidebar_button_reload_callbacks, border_width=2)
         self.sidebar_button_reload.grid(row=1, column=0, padx=20, pady=10)
-        self.sidebar_button_pairall = ctk.CTkButton(self,text="PairAll",command=lambda:self.sidebar_button_select_callback("pairall"))
+        self.sidebar_button_pairall = ctk.CTkButton(self,text="PairAll",command=lambda:self.sidebar_button_callback("pairall"))
         self.sidebar_button_pairall.grid(row=2, column=0, padx=20, pady=10)
-        self.sidebar_button_force_pairall = ctk.CTkButton(self,text="ForcePairAll",command=lambda:self.sidebar_button_select_callback("forcepairall"))
+        self.sidebar_button_force_pairall = ctk.CTkButton(self,text="ForcePairAll",command=lambda:self.sidebar_button_callback("forcepairall"))
         self.sidebar_button_force_pairall.grid(row=3, column=0, padx=20, pady=10)
-        self.sidebar_button_unpairall = ctk.CTkButton(self,text="UnpairAll",command=lambda:self.sidebar_button_select_callback("unpairall"))
+        self.sidebar_button_unpairall = ctk.CTkButton(self,text="UnpairAll",command=lambda:self.sidebar_button_callback("unpairall"))
         self.sidebar_button_unpairall.grid(row=4, column=0, padx=20, pady=10)
-        self.sidebar_button_unpairall = ctk.CTkButton(self,text="DongleResetAll",command=lambda:self.sidebar_button_select_callback("dongleresetall"),fg_color="transparent", border_width=2,text_color=("gray10", "#DCE4EE"),)
+        self.sidebar_button_unpairall = ctk.CTkButton(self,text="DongleResetAll",command=lambda:self.sidebar_button_callback("dongleresetall"),fg_color="transparent", border_width=2,text_color=("gray10", "#DCE4EE"),)
         self.sidebar_button_unpairall.grid(row=5, column=0, padx=20, pady=10)
 
 
-        self.appearance_mode_label = ctk.CTkLabel(self, text="Theme:")
-        self.appearance_mode_label.grid(row=7, column=0, padx=20, pady=(10, 0))
-        self.appearance_mode_optionemenu = ctk.CTkOptionMenu(self, values=["Light", "Dark", "System"],command=self.change_appearance_mode_event)
-        self.appearance_mode_optionemenu.grid(row=8, column=0, padx=20, pady=(10, 20))
+        self.sidebar_label_mode = ctk.CTkLabel(self, text="Theme:")
+        self.sidebar_label_mode.grid(row=7, column=0, padx=20, pady=(10, 0))
+        self.sidebar_optionemenu_mode = ctk.CTkOptionMenu(self, values=["Light", "Dark", "System"],command=self.change_appearance_mode_event)
+        self.sidebar_optionemenu_mode.grid(row=8, column=0, padx=20, pady=(10, 20))
 
         #reset
-        self.appearance_mode_optionemenu.set("System")
+        self.sidebar_optionemenu_mode.set("System")
 
-    def reload_devices(self):
+    def sidebar_button_reload_callbacks(self):
         app_instance = self.master
 
-        exe_path = app_instance.exe_path_frame.textbox.get()
+        exe_path = app_instance.exe_path_frame.exepath_entry_serial.get()
         output = app_instance.execute_subprocess("serial", exe_path)
         device_serials = self.extract_device_serials(output)
         #print("Recognized devices: " + ", ".join(device_serials))
@@ -51,12 +51,11 @@ class SidebarFrame(ctk.CTkFrame):
     @staticmethod
     def extract_device_serials(output):
         lines = [line.strip() for line in output.split('\n') if line.startswith('\t') and not line.lstrip().startswith('LHR-')]
-
         return lines
 
-    def sidebar_button_select_callback(self, command):
+    def sidebar_button_callback(self, command):
         app_instance = self.master  # Get the instance of the App class
-        exe_path = app_instance.exe_path_frame.textbox.get() 
+        exe_path = app_instance.exe_path_frame.exepath_entry_serial.get() 
     
         if command == "pairall":
             self.sidebar_button_pairall.configure(text="Pairing...",state="disabled")
@@ -64,17 +63,13 @@ class SidebarFrame(ctk.CTkFrame):
             self.sidebar_button_force_pairall.configure(text="Pairing...",state="disabled")
         
         threading.Thread(target=lambda: app_instance.execute_subprocess(command, exe_path)).start()
-        #app_instance.execute_subprocess(command, exe_path)
     
-    # After 5 seconds, reset the corresponding button text
         if command == "pairall":
             self.after(5000, lambda: self.sidebar_button_pairall.configure(text="PairAll",state="normal"))
         elif command == "forcepairall":
             self.after(5000, lambda: self.sidebar_button_force_pairall.configure(text="ForcePairAll",state="normal"))
-    
-    # After 5 seconds, call the status_check method
+
         self.after(5000, app_instance.status_check)
-    
         app_instance.insert_log("Executed command: " + command)
 
 
@@ -103,31 +98,30 @@ class ScrollableFrame(ctk.CTkScrollableFrame):
 class DeviceFrame(ctk.CTkFrame):
     def __init__(self, master, serial, app_instance, **kwargs):
         super().__init__(master, **kwargs)
-
         self.app_instance = app_instance
 
         device_name = self.get_device_name(serial)
-        self.Device_label = ctk.CTkLabel(self, text="Device ID:")
-        self.Device_label.grid(row=0, column=0, padx=(20, 0), pady=20)
-        self.Device_serial_label = ctk.CTkLabel(self, text=serial)  # Display the serial here
-        self.Device_serial_label.grid(row=0, column=1, padx=(5, 20), pady=20)
+        self.device_label_id = ctk.CTkLabel(self, text="Device ID:")
+        self.device_label_id.grid(row=0, column=0, padx=(20, 0), pady=20)
+        self.device_label_serial = ctk.CTkLabel(self, text=serial)  # Display the serial here
+        self.device_label_serial.grid(row=0, column=1, padx=(5, 20), pady=20)
 
-        self.Device_name_label = ctk.CTkLabel(self, text=device_name)
-        #self.Device_name_label.grid(row=0, column=2, padx=20, pady=20)
-        self.Device_name_label.place(x=210,y=20)
+        self.device_label_name = ctk.CTkLabel(self, text=device_name)
+        #self.device_label_name.grid(row=0, column=2, padx=20, pady=20)
+        self.device_label_name.place(x=210,y=20)
 
-        self.pair_button_select = ctk.CTkButton(self,width=100,command=lambda: self.device_button_callback("pair",serial), text="Pair")
-        self.pair_button_select.grid(row=0, column=4, padx=(70, 10), pady=20)
-        self.unpair_button_select = ctk.CTkButton(self,width=100,command=lambda: self.device_button_callback("unpair",serial), text="Unpair")
-        self.unpair_button_select.grid(row=0, column=5, padx=(10, 10), pady=20)
-        self.reset_button_select = ctk.CTkButton(self,width=100, text_color=("gray10", "#DCE4EE"), fg_color="transparent", border_width=2, command=lambda: self.device_button_callback("donglereset",serial), text="DongleReset")
-        self.reset_button_select.grid(row=0, column=6, padx=(10, 20), pady=20)
+        self.device_button_pair = ctk.CTkButton(self,width=100,command=lambda: self.device_button_callback("pair",serial), text="Pair")
+        self.device_button_pair.grid(row=0, column=4, padx=(70, 10), pady=20)
+        self.device_button_unpair = ctk.CTkButton(self,width=100,command=lambda: self.device_button_callback("unpair",serial), text="Unpair")
+        self.device_button_unpair.grid(row=0, column=5, padx=(10, 10), pady=20)
+        self.device_button_reset = ctk.CTkButton(self,width=100, text_color=("gray10", "#DCE4EE"), fg_color="transparent", border_width=2, command=lambda: self.device_button_callback("donglereset",serial), text="DongleReset")
+        self.device_button_reset.grid(row=0, column=6, padx=(10, 20), pady=20)
     
     def button_status_change(self, status):
         if status == "normal":
-            self.pair_button_select.configure(state=status, text="Pair")
+            self.device_button_pair.configure(state=status, text="Pair")
         elif status == "disabled":
-            self.pair_button_select.configure(state=status, text="Paired")
+            self.device_button_pair.configure(state=status, text="Paired")
 
 
     def get_device_name(self, serial_number):
@@ -141,47 +135,43 @@ class DeviceFrame(ctk.CTkFrame):
             return "Dongle"
 
     def device_button_callback(self,command,serial):
-        exe_path = self.app_instance.exe_path_frame.textbox.get()
+        exe_path = self.app_instance.exe_path_frame.exepath_entry_serial.get()
 
         if command == "pair":
-            self.pair_button_select.configure(text="Pairing...",state="disabled")
+            self.device_button_pair.configure(text="Pairing...",state="disabled")
 
-        
-        
         threading.Thread(target=lambda: self.app_instance.execute_subprocess_serial(serial, command, exe_path)).start()
         self.app_instance.insert_log("Executed command : serial " + serial +" "+ command)
         
         if command == "pair":
-            self.after(5000, lambda: self.pair_button_select.configure(text="Pair",state="normal"))
-            
-
+            self.after(5000, lambda: self.device_button_pair.configure(text="Pair",state="normal"))
+        
         self.after(5000, self.app_instance.status_check)
 
 class ExePathFrame(ctk.CTkFrame):
     def __init__(self, master, **kwargs):
         super().__init__(master, **kwargs)
 
-        self.textbox = ctk.CTkEntry(self, width=120)
-        self.textbox.grid(row=0, column=0, padx=(20, 0), pady=(20, 20), sticky="ew")
+        self.exepath_entry_serial = ctk.CTkEntry(self, width=120)
+        self.exepath_entry_serial.grid(row=0, column=0, padx=(20, 0), pady=(20, 20), sticky="ew")
 
-        self.button_select = ctk.CTkButton(self, command=self.path_button_select_callback, fg_color="transparent", text_color=("gray10", "#DCE4EE"), border_width=2, text="Browse")
-        self.button_select.grid(row=0, column=1, padx=20, pady=20)
+        self.exepath_button_browse = ctk.CTkButton(self, command=self.exepath_button_callback, fg_color="transparent", text_color=("gray10", "#DCE4EE"), border_width=2, text="Browse")
+        self.exepath_button_browse.grid(row=0, column=1, padx=20, pady=20)
 
         #reset
-        self.textbox.delete(0, tk.END)
-        self.textbox.insert(0, r"C:\Program Files (x86)\Steam\steamapps\common\SteamVR\tools\lighthouse\bin\win64\lighthouse_console.exe")
+        self.exepath_entry_serial.delete(0, tk.END)
+        self.exepath_entry_serial.insert(0, r"C:\Program Files (x86)\Steam\steamapps\common\SteamVR\tools\lighthouse\bin\win64\lighthouse_console.exe")
 
-    def path_button_select_callback(self):
+    def exepath_button_callback(self):
         file_name = self.file_read()
 
         if file_name is not None:
-            self.textbox.delete(0, tk.END)
-            self.textbox.insert(0, file_name)
+            self.exepath_entry_serial.delete(0, tk.END)
+            self.exepath_entry_serial.insert(0, file_name)
             self.exe_check()
 
     @staticmethod
     def file_read():
-        
         file_path = tk.filedialog.askopenfilename(filetypes=[("Executable Files", "*.exe")])
 
         if len(file_path) != 0:
@@ -190,13 +180,12 @@ class ExePathFrame(ctk.CTkFrame):
             return None
 
     def exe_check(self):
-
         app_instance = self.master
-        exe_path = app_instance.exe_path_frame.textbox.get() 
+        exe_path = app_instance.exe_path_frame.exepath_entry_serial.get() 
         output = app_instance.execute_subprocess("serial", exe_path)
+
         if "lighthouse_console.exe" in output:
             app_instance.insert_log("Successfully recognized lighthouse_console.exe")
-            
         else:
             app_instance.insert_log("Failed to recognize lighthouse_console.exe")
                   
@@ -223,19 +212,19 @@ class App(ctk.CTk):
         self.scrollable_frame.grid(row=1, column=1, padx=(20, 20), pady=(10, 0), sticky="nsew")
         self.scrollable_frame.grid_columnconfigure(0, weight=1)
 
-        self.log_textbox = ctk.CTkTextbox(self,height= 100)
-        self.log_textbox.grid(row=2, column=1, padx=(20, 20), pady=(20, 20), sticky="nsew")
+        self.textbox_log = ctk.CTkTextbox(self,height= 100)
+        self.textbox_log.grid(row=2, column=1, padx=(20, 20), pady=(20, 20), sticky="nsew")
 
         #reset
         self.insert_log("Welcome to watchman_pairing_assistant ! (v1.3)")
         self.exe_path_frame.exe_check()
-        self.sidebar_frame.reload_devices()
+        self.sidebar_frame.sidebar_button_reload_callbacks()
         
     
     def insert_log(self,log):
         current_time = time.strftime("[%Y-%m-%d %H:%M:%S] ")
-        self.log_textbox.insert(tk.END, current_time + log + "\n")
-        self.log_textbox.see(tk.END)
+        self.textbox_log.insert(tk.END, current_time + log + "\n")
+        self.textbox_log.see(tk.END)
         print(current_time + log)
 
     def execute_subprocess(self, command, exe_path):
@@ -265,12 +254,12 @@ class App(ctk.CTk):
 
 
     def status_check(self):
-        exe_path = self.exe_path_frame.textbox.get()
+        exe_path = self.exe_path_frame.exepath_entry_serial.get()
         output = self.execute_subprocess("dongleinfo", exe_path)
         #print(output)
 
         for device_frame in self.scrollable_frame.device_frames:
-            serial = device_frame.Device_serial_label.cget("text")
+            serial = device_frame.device_label_serial.cget("text")
             serial_appears_disabled = f"VRC-{serial}" in output
 
             if serial_appears_disabled:
@@ -281,7 +270,7 @@ class App(ctk.CTk):
 
     def device_status_change(self, serial, status):
         for device_frame in self.scrollable_frame.device_frames:
-            check_serial = device_frame.Device_serial_label.cget("text")
+            check_serial = device_frame.device_label_serial.cget("text")
             if check_serial == serial:
                 device_frame.button_status_change(status)
                 break
