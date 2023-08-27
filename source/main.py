@@ -38,7 +38,8 @@ class SidebarFrame(ctk.CTkFrame):
         app_instance.insert_log("Recognized devices : " + ", ".join(device_serials))
 
         app_instance.scrollable_frame.update_device_frames(device_serials,app_instance)
-        app_instance.check_status()
+        threading.Thread(target=app_instance.check_status).start()
+
         app_instance.insert_log("Reloaded devices")
         
     def sidebar_button_callback(self, command):#Processing when a button on the sidebar is pressed
@@ -57,7 +58,7 @@ class SidebarFrame(ctk.CTkFrame):
         elif command == "forcepairall":
             self.after(5000, lambda: self.sidebar_button_force_pairall.configure(text="ForcePairAll",state="normal"))
 
-        self.after(5000, app_instance.check_status)
+        threading.Timer(5, app_instance.check_status).start()
         app_instance.insert_log("Executed command: " + command)
 
     def sidebar_optionemenu_callback(self, new_appearance_mode: str):#Functions to change the theme
@@ -108,23 +109,29 @@ class DeviceFrame(ctk.CTkFrame):
 
     def device_button_callback(self,command,serial):#Processing when a button on the device frame is pressed
         exe_path = self.app_instance.exe_path_frame.exepath_entry_serial.get()
+        
+        def check_exists(texts,states):
+            if self.device_button_pair.winfo_exists():
+                self.device_button_pair.configure(text=texts,state=states)
 
         if command == "pair":
-            self.device_button_pair.configure(text="Pairing...",state="disabled")
+            check_exists("Pairing...","disabled")
 
         threading.Thread(target=lambda: self.app_instance.execute_subprocess_serial(serial, command, exe_path)).start()
         self.app_instance.insert_log("Executed command : " + serial +" "+ command)
         
         if command == "pair":
-            self.after(5000, lambda: self.device_button_pair.configure(text="Pair",state="normal"))
-        
-        self.after(5000, self.app_instance.check_status)
+            threading.Timer(5, lambda: check_exists("Pair","normal")).start()
+
+
+        threading.Timer(5, self.app_instance.check_status).start()
 
     def change_button_status(self, status):#Change the status of a button on the device frame
-        if status == "normal":
-            self.device_button_pair.configure(state=status, text="Pair")
-        elif status == "disabled":
-            self.device_button_pair.configure(state=status, text="Paired")
+        if self.winfo_exists():
+            if status == "normal":
+                self.device_button_pair.configure(state=status, text="Pair")
+            elif status == "disabled":
+                self.device_button_pair.configure(state=status, text="Paired")
 
 class ExePathFrame(ctk.CTkFrame):
     def __init__(self, master, **kwargs):#Widget Placement
@@ -177,10 +184,10 @@ class App(ctk.CTk):
         self.scrollable_frame.grid_columnconfigure(0, weight=1)
 
         self.textbox_log = ctk.CTkTextbox(self,height= 100)
-        self.textbox_log.grid(row=2, column=1, padx=(20, 20), pady=(20, 20), sticky="nsew")
+        self.textbox_log.grid(row=2, column=1, padx=(20, 20), pady=(10, 20), sticky="nsew")
 
         #reset
-        self.insert_log("Welcome to watchman_pairing_assistant ! (v1.4)")
+        self.insert_log("Welcome to watchman_pairing_assistant ! (v1.5)")
         self.check_exe()
         self.sidebar_frame.sidebar_button_reload_callback()
         
@@ -212,28 +219,25 @@ class App(ctk.CTk):
 
     def check_status(self):#Function to determine dongle connection status
         exe_path = self.exe_path_frame.exepath_entry_serial.get()
+        output = self.execute_subprocess("dongleinfo", exe_path)
+        #print(output)
 
-        def check_status_thread():
-            output = self.execute_subprocess("dongleinfo", exe_path)
-            #print(output)
-
-            for device_frame in self.scrollable_frame.device_frames:
-                serial = device_frame.device_label_serial.cget("text")
-                serial_appears_disabled = f"VRC-{serial}" in output #Determine if there is a string "VRC-<serial>" in the output result
-
-                if serial_appears_disabled:
-                    self.change_device_status(serial,"disabled")
-                    self.insert_log("Device connected with "+serial)
-                else:
-                    self.change_device_status(serial,"normal")
-
-        threading.Thread(target=check_status_thread).start()
+        for device_frame in self.scrollable_frame.device_frames:
+            serial = device_frame.device_label_serial.cget("text")
+            serial_appears_disabled = f"VRC-{serial}" in output #Determine if there is a string "VRC-<serial>" in the output result
+            
+            if serial_appears_disabled:
+                self.change_device_status(serial,"disabled")
+                self.insert_log("Device connected with "+serial)
+            else:
+                self.change_device_status(serial,"normal")
 
     def change_device_status(self, serial, status):#Function to call button status update for device frame
         for device_frame in self.scrollable_frame.device_frames:
             check_serial = device_frame.device_label_serial.cget("text")
             if check_serial == serial:
-                device_frame.change_button_status(status)
+                if device_frame.winfo_exists():
+                    device_frame.change_button_status(status)
                 break
 
     def extract_device_serials(self, output):#Function to extract serial from exe output
