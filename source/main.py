@@ -35,7 +35,8 @@ class SidebarFrame(ctk.CTkFrame):
         exe_path = app_instance.exe_path_frame.exepath_entry_serial.get()
         output = app_instance.execute_subprocess("serial", exe_path)
         device_serials = app_instance.extract_device_serials(output)
-        app_instance.insert_log("Recognized devices : " + ", ".join(device_serials))
+        if device_serials:
+            app_instance.insert_log("Recognized devices : " + ", ".join(device_serials))
 
         app_instance.scrollable_frame.update_device_frames(device_serials,app_instance)
         threading.Thread(target=app_instance.check_status).start()
@@ -250,6 +251,8 @@ class App(ctk.CTk):
             return "IndexHMD"
         elif serial_number.endswith(("LYX")):   #Dongles made with Index firmware when the serial number ends with "LYX"
             return "IndexFW"
+        elif serial_number.endswith(("DYX")):   #If the serial ends with DYX, it is an etee dongle
+            return "etee"
         elif re.match(r".*(-[0-9]YX)$", serial_number): 
             #If the last part of the serial number begins with a "-" followed by a single digit and ends with "YX", it is a Tundra labs Super Wireless Dongle
             return "Tundra"
