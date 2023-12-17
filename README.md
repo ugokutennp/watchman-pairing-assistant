@@ -1,3 +1,3 @@
 # WatchmanPairingAssistant
-![thumbnail](resources/thumbnail.png)
+![thumbnail](resources/picture.png)
 WIP
