@@ -137,7 +137,7 @@ class App(ctk.CTk):
         #Window settings
         ctk.set_default_color_theme("blue")
         self.title("watchman_pairing_assistant")
-        #self.after(201, lambda :self.iconbitmap(r'resources\icon.ico')) #set icon dir
+        self.after(201, lambda :self.iconbitmap(r'resources\icon.ico')) #set icon dir
         self.geometry(f"{940}x{580}")
         config = self.load_config()
         ctk.set_appearance_mode(config.get("theme"))
